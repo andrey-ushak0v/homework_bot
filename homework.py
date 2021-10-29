@@ -35,7 +35,7 @@ HOMEWORK_STATUSES = {
 
 
 def check_tokens():
-    """"проверяет обязательные переменные окружения."""
+    """проверяет обязательные переменные окружения."""
     no_tokens_msg = (
         'Программа принудительно остановлена. '
         'Отсутствует обязательная переменная окружения:')
@@ -56,7 +56,7 @@ def check_tokens():
 
 
 def send_message(bot, message):
-    """"отправляет сообщение."""
+    """отправляет сообщение."""
     try:
         logger.info(f'bot send message {message}')
         bot.send_message(chat_id=CHAT_ID, text=message)
@@ -65,7 +65,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(url, current_timestamp):
-    """"отправляет запрос к API практикума."""
+    """отправляет запрос к API практикума."""
     url = ENDPOINT
     headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
     payload = {'from_date': current_timestamp}
@@ -81,7 +81,7 @@ def get_api_answer(url, current_timestamp):
 
 
 def parse_status(homework):
-    """"проверяет статус."""
+    """проверяет статус."""
     verdict = HOMEWORK_STATUSES[homework.get('status')]
     homework_name = homework.get('homework_name')
     if homework_name is None:
@@ -93,7 +93,7 @@ def parse_status(homework):
 
 
 def check_response(response):
-    """"получает ответ."""
+    """получает ответ."""
     homeworks = response.get('homeworks')
     current_timestamp = response.get('current_date')
     if homeworks is None:
