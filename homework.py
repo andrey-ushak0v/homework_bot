@@ -24,7 +24,7 @@ logger.addHandler(
     logging.StreamHandler()
 )
 
-RETRY_TIME = 5
+RETRY_TIME = 300
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 
 HOMEWORK_STATUSES = {
