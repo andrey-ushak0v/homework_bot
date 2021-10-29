@@ -1,6 +1,4 @@
 import logging
-from requests.models import Response
-from telegram import Bot
 import os
 import requests
 import time
@@ -19,14 +17,14 @@ logging.basicConfig(
     level=logging.INFO,
     filename='main.log',
     filemode='w'
-    )
+)
 
 logger = logging.getLogger(__name__)
 logger.addHandler(
     logging.StreamHandler()
 )
 
-RETRY_TIME = 300
+RETRY_TIME = 5
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 
 HOMEWORK_STATUSES = {
@@ -37,6 +35,7 @@ HOMEWORK_STATUSES = {
 
 
 def check_tokens():
+    """"проверяет обязательные переменные окружения"""
     no_tokens_msg = (
         'Программа принудительно остановлена. '
         'Отсутствует обязательная переменная окружения:')
@@ -56,13 +55,6 @@ def check_tokens():
     return tokens_bool
 
 
-def ResponseIsNot200(response):
-    """Функция для обработки недоступного ENDPOINT."""
-    status_code = response.status_code
-    message = f'Status code your ENDPOINT is {status_code}'
-    logger.error(message)
-    return message
-
 def send_message(bot, message):
     """"отправляет сообщение"""
     try:
@@ -70,7 +62,6 @@ def send_message(bot, message):
         bot.send_message(chat_id=CHAT_ID, text=message)
     except Exception as error:
         logger.error(f'Error in send message: {error}')
-
 
 
 def get_api_answer(url, current_timestamp):
@@ -81,15 +72,16 @@ def get_api_answer(url, current_timestamp):
     try:
         response = requests.get(url, headers=headers, params=payload)
         if response.status_code != 200:
-            logging.error('Ошибка сервера эндпоинт')
+            logging.error('Ошибка эндпоинта')
             raise Exception('Эндпоинт недоступен')
     except requests.exceptions.RequestException:
         logging.error('сетевая ошибка')
         raise Exception('ошибка сети')
     return response.json()
-    
+
 
 def parse_status(homework):
+    """"проверяет статус"""
     verdict = HOMEWORK_STATUSES[homework.get('status')]
     homework_name = homework.get('homework_name')
     if homework_name is None:
@@ -101,26 +93,26 @@ def parse_status(homework):
 
 
 def check_response(response):
-    """"проверяет состояние статуса"""
+    """"получает ответ"""
     homeworks = response.get('homeworks')
     current_timestamp = response.get('current_date')
     if homeworks is None:
         logger.error('задание отсутствует')
-        raise Exception('задание отсутствует')
+        raise Exception('Задание отсутствует')
     for homework in homeworks:
         status = homework.get('status')
         if status in HOMEWORK_STATUSES.keys():
-            return homeworks
+            return homework
         else:
             logger.error('недокументированный статус ДЗ')
             raise Exception('недокументированный статус ДЗ')
     return {'homeworks': homeworks,
-        'current_timestamp': current_timestamp
+            'current_timestamp': current_timestamp
             }
-    
 
 
 def main():
+    """связующая функция"""
     if not check_tokens():
         sys.exit()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
@@ -142,7 +134,6 @@ def main():
                 send_message(bot, message)
             logging.error(message, exc_info=True)
             time.sleep(RETRY_TIME)
-            continue
 
 
 if __name__ == '__main__':
