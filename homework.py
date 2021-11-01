@@ -9,8 +9,10 @@ import sys
 load_dotenv()
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
+PRACTICUM_HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-CHAT_ID = os.getenv('CHAT_ID')
+TELEGRAM_CHAT_ID = os.getenv('CHAT_ID')
+
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -48,7 +50,7 @@ def check_tokens():
         tokens_bool = False
         logger.critical(
             f'{no_tokens_msg} TELEGRAM_TOKEN')
-    if CHAT_ID is None:
+    if TELEGRAM_CHAT_ID is None:
         tokens_bool = False
         logger.critical(
             f'{no_tokens_msg} CHAT_ID')
@@ -59,34 +61,33 @@ def send_message(bot, message):
     """отправляет сообщение."""
     try:
         logger.info(f'bot send message {message}')
-        bot.send_message(chat_id=CHAT_ID, text=message)
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
     except Exception as error:
         logger.error(f'Error in send message: {error}')
 
 
-def get_api_answer(url, current_timestamp):
+def get_api_answer(ENDPOINT, current_timestamp):
     """отправляет запрос к API практикума."""
-    url = ENDPOINT
-    headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
     payload = {'from_date': current_timestamp}
     try:
-        response = requests.get(url, headers=headers, params=payload)
+        response = requests.get(
+            ENDPOINT, headers=PRACTICUM_HEADERS, params=payload)
         if response.status_code != 200:
             logging.error('Ошибка эндпоинта')
             raise Exception('Эндпоинт недоступен')
+        return response.json()
     except requests.exceptions.RequestException:
         logging.error('сетевая ошибка')
-        raise Exception('ошибка сети')
-    return response.json()
+        raise Exception('ошибка сети', exc_info=True)
 
 
 def parse_status(homework):
     """проверяет статус."""
     verdict = HOMEWORK_STATUSES[homework.get('status')]
     homework_name = homework.get('homework_name')
-    if homework_name is None:
+    if not homework_name:
         raise Exception('имя задания отсутствует')
-    if verdict is None:
+    if not verdict:
         raise Exception('нет результата')
     logger.info(f'итоговый результат: {verdict}')
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
@@ -95,20 +96,16 @@ def parse_status(homework):
 def check_response(response):
     """получает ответ."""
     homeworks = response.get('homeworks')
-    current_timestamp = response.get('current_date')
-    if homeworks is None:
+    if not homeworks:
         logger.error('задание отсутствует')
-        raise Exception('Задание отсутствует')
     for homework in homeworks:
         status = homework.get('status')
-        if status in HOMEWORK_STATUSES.keys():
+        if status in HOMEWORK_STATUSES:
             return homework
         else:
             logger.error('недокументированный статус ДЗ')
             raise Exception('недокументированный статус ДЗ')
-    return {'homeworks': homeworks,
-            'current_timestamp': current_timestamp
-            }
+    return []
 
 
 def main():
@@ -130,7 +127,7 @@ def main():
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             if errors:
-                errors = False
+                errors = True
                 send_message(bot, message)
             logging.error(message, exc_info=True)
             time.sleep(RETRY_TIME)
