@@ -83,7 +83,7 @@ def get_api_answer(ENDPOINT, current_timestamp):
 
 def parse_status(homework):
     """проверяет статус."""
-    verdict = HOMEWORK_STATUSES[homework.get('status')]
+    verdict = HOMEWORK_STATUSES[homework['status']]
     homework_name = homework.get('homework_name')
     if not homework_name:
         raise Exception('имя задания отсутствует')
